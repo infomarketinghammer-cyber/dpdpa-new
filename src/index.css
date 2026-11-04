@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@layer base {
+  /* Light theme only: native controls (selects, inputs, scrollbars) render light
+     even when the operating system is set to dark mode. */
+  :root {
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    background-color: var(--color-slate-50);
+    color: var(--color-slate-900);
+  }
+
+  body {
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+
+  /* Keep form controls at 16px on phones so iOS Safari does not zoom on focus */
+  @media (max-width: 639px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Subtle light scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-slate-300) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--color-slate-300);
+    border-radius: 9999px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-slate-400);
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* Printing the board report: let the page flow instead of the scrolling app shell */
+@media print {
+  .h-dvh {
+    height: auto !important;
+  }
+  main {
+    overflow: visible !important;
+  }
+  header,
+  aside {
+    display: none !important;
+  }
+}

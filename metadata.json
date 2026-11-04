@@ -1,0 +1,8 @@
+{
+  "name": "Remix DPDPA Privacy Compliance Suite",
+  "description": "Enterprise multi-tenant privacy management platform for Indian organisations under the Digital Personal Data Protection Act (DPDPA 2023). Features 11 modular tools, Central Compliance Database, CPO Oversight Dashboard, and Board Readiness reporting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -4,6 +4,7 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
+import { randomUUID } from 'crypto';
 import { ccdStore, TENANT_BHARATPAY_ID } from '../ccd-store.js';
 import { getOpenAPISpec } from '../openapi.js';
 import { GoogleGenAI } from '@google/genai';
@@ -612,6 +613,126 @@ apiRouter.get('/vendor/vendors', requireEntitlement('vendor_manager'), (req, res
   const authReq = req as AuthenticatedRequest;
   const list = ccdStore.vendors.filter((v) => v.tenant_id === authReq.tenantId);
   res.json(list);
+});
+
+const VENDOR_RISK_TIERS = ['tier_1_high', 'tier_2_medium', 'tier_3_low'];
+const VENDOR_DPA_STATUSES = ['missing', 'draft', 'signed', 'expired'];
+
+// Validates editable vendor fields; returns { error } or { fields }
+function parseVendorInput(body: any, partial: boolean): { error?: string; fields?: Record<string, any> } {
+  const f: Record<string, any> = {};
+  const str = (v: any) => (typeof v === 'string' ? v.trim() : '');
+
+  if (!partial || body.legal_name !== undefined) {
+    if (!str(body.legal_name)) return { error: 'Vendor legal name is required.' };
+    f.legal_name = str(body.legal_name);
+  }
+  if (body.contact_email !== undefined) {
+    const email = str(body.contact_email);
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'Contact email is not valid.' };
+    f.contact_email = email;
+  }
+  if (body.services_provided !== undefined) f.services_provided = str(body.services_provided);
+  if (body.hosting_geography !== undefined) f.hosting_geography = str(body.hosting_geography);
+  if (body.risk_tier !== undefined) {
+    if (!VENDOR_RISK_TIERS.includes(body.risk_tier)) return { error: 'Invalid risk tier.' };
+    f.risk_tier = body.risk_tier;
+  }
+  if (body.dpa_status !== undefined) {
+    if (!VENDOR_DPA_STATUSES.includes(body.dpa_status)) return { error: 'Invalid DPA status.' };
+    f.dpa_status = body.dpa_status;
+  }
+  if (body.security_score !== undefined) {
+    const score = Number(body.security_score);
+    if (!Number.isFinite(score) || score < 0 || score > 100) return { error: 'Security score must be between 0 and 100.' };
+    f.security_score = Math.round(score);
+  }
+  if (body.subprocessors !== undefined) {
+    const list = Array.isArray(body.subprocessors) ? body.subprocessors : String(body.subprocessors).split(',');
+    f.subprocessors = list.map((s: any) => String(s).trim()).filter(Boolean);
+  }
+  for (const key of ['dpa_signed_at', 'dpa_expires_at']) {
+    if (body[key] !== undefined) {
+      if (!body[key]) {
+        f[key] = undefined;
+      } else if (isNaN(Date.parse(body[key]))) {
+        return { error: `Invalid date for ${key}.` };
+      } else {
+        f[key] = new Date(body[key]).toISOString();
+      }
+    }
+  }
+  return { fields: f };
+}
+
+apiRouter.post('/vendor/vendors', requireEntitlement('vendor_manager'), requireRole(['editor', 'approver', 'admin', 'ppoc_cpo']), async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
+  const { error, fields } = parseVendorInput(req.body || {}, false);
+  if (error) return res.status(400).json({ error: 'VALIDATION_ERROR', message: error });
+
+  const id = `vend-${randomUUID()}`;
+  const created = await ccdStore.executeTransactionalWrite({
+    tenantId: authReq.tenantId,
+    actor: { id: authReq.userId, name: authReq.userName, role: authReq.userRole },
+    module: 'vendor_manager',
+    action: 'CREATE_VENDOR',
+    entityType: 'vendor',
+    entityId: id,
+    description: `Registered vendor ${fields!.legal_name}`,
+    eventType: 'vendor.created',
+    eventPayload: { vendor_name: fields!.legal_name },
+    mutation: () => {
+      const vendor = {
+        id,
+        tenant_id: authReq.tenantId,
+        legal_name: '',
+        contact_email: '',
+        services_provided: '',
+        onboarding_stage: 'registration' as const,
+        dpa_status: 'missing' as const,
+        risk_tier: 'tier_2_medium' as const,
+        subprocessors: [] as string[],
+        hosting_geography: '',
+        security_score: 0,
+        ...fields,
+        created_at: new Date().toISOString(),
+      };
+      ccdStore.vendors.unshift(vendor);
+      return vendor;
+    },
+  });
+
+  res.status(201).json({ success: true, vendor: created });
+});
+
+apiRouter.put('/vendor/vendors/:id', requireEntitlement('vendor_manager'), requireRole(['editor', 'approver', 'admin', 'ppoc_cpo']), async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
+  const item = ccdStore.vendors.find((v) => v.tenant_id === authReq.tenantId && v.id === req.params.id);
+  if (!item) return res.status(404).json({ error: 'Vendor not found' });
+
+  const { error, fields } = parseVendorInput(req.body || {}, true);
+  if (error) return res.status(400).json({ error: 'VALIDATION_ERROR', message: error });
+
+  const oldState = { ...item };
+  const updated = await ccdStore.executeTransactionalWrite({
+    tenantId: authReq.tenantId,
+    actor: { id: authReq.userId, name: authReq.userName, role: authReq.userRole },
+    module: 'vendor_manager',
+    action: 'UPDATE_VENDOR',
+    entityType: 'vendor',
+    entityId: item.id,
+    description: `Updated vendor details for ${fields!.legal_name || item.legal_name}`,
+    oldState,
+    newState: fields,
+    eventType: 'vendor.updated',
+    eventPayload: { vendor_name: fields!.legal_name || item.legal_name, changed_fields: Object.keys(fields!) },
+    mutation: () => {
+      Object.assign(item, fields);
+      return item;
+    },
+  });
+
+  res.json({ success: true, vendor: updated });
 });
 
 apiRouter.post('/vendor/vendors/:id/advance-stage', requireEntitlement('vendor_manager'), requireRole(['editor', 'approver', 'admin', 'ppoc_cpo']), async (req, res) => {

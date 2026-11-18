@@ -15,6 +15,7 @@ import { DataMapperView } from './components/modules/DataMapperView.tsx';
 import { FlowMapperView } from './components/modules/FlowMapperView.tsx';
 import { RightsManagerView } from './components/modules/RightsManagerView.tsx';
 import { VendorRiskView } from './components/modules/VendorRiskView.tsx';
+import { ContractReviewView } from './components/modules/ContractReviewView.tsx';
 import { PolicyGeneratorView } from './components/modules/PolicyGeneratorView.tsx';
 import { DPIAView } from './components/modules/DPIAView.tsx';
 import { RiskRegisterView } from './components/modules/RiskRegisterView.tsx';
@@ -68,6 +69,7 @@ const AppContent: React.FC = () => {
             {activeTab === 'flow_mapper' && <FlowMapperView />}
             {activeTab === 'rights_manager' && <RightsManagerView />}
             {activeTab === 'vendor_manager' && <VendorRiskView />}
+            {activeTab === 'contract_review' && <ContractReviewView />}
             {activeTab === 'policy_generator' && <PolicyGeneratorView />}
             {activeTab === 'dpia' && <DPIAView />}
             {activeTab === 'risk_register' && <RiskRegisterView />}

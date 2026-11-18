@@ -17,6 +17,7 @@ import {
   Scale,
   History,
   Lock,
+  FileSearch,
 } from 'lucide-react';
 
 interface NavItem {
@@ -107,6 +108,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           moduleKey: 'vendor_manager',
           label: 'Vendor Risk & DPAs',
           icon: Building,
+        },
+        {
+          id: 'contract_review',
+          label: 'Contract Review',
+          icon: FileSearch,
+          badge: 'New',
+          badgeColor: 'bg-violet-100 text-violet-700 border border-violet-200',
         },
         {
           id: 'policy_generator',

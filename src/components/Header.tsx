@@ -3,7 +3,6 @@ import { useApp } from '../context/AppContext.tsx';
 import { UserRoleType } from '../types/index.ts';
 import {
   Building2,
-  ShieldCheck,
   Bell,
   RefreshCw,
   ExternalLink,
@@ -73,9 +72,11 @@ export const Header: React.FC<HeaderProps> = ({ isNavOpen, onToggleNav }) => {
 
         {/* Brand */}
         <div className="flex items-center gap-3 min-w-0 flex-1 2xl:flex-none">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 via-indigo-600 to-sky-500 flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0">
-            <ShieldCheck className="w-5 h-5 text-white" />
-          </div>
+          <img
+            src="/sarhad-logo.png"
+            alt="Sarhad, Pune"
+            className="h-14 sm:h-16 w-auto object-contain shrink-0"
+          />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-bold text-sm sm:text-base tracking-tight text-slate-900 truncate">

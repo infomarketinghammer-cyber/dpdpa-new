@@ -21,6 +21,7 @@ export type AppNavTab =
   | 'flow_mapper'
   | 'rights_manager'
   | 'vendor_manager'
+  | 'contract_review'
   | 'policy_generator'
   | 'dpia'
   | 'risk_register'
